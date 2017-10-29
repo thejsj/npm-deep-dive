@@ -1,0 +1,31 @@
+FROM node:boron
+# Node Version v6.11., npm 2.15.11
+
+ENV NPM_TOKEN=064db685-2f46-45b4-957c-55bef2d6055e
+
+ADD ./runnable-deploy-bot.id_rsa /root/.ssh/id_rsa
+WORKDIR /root/.ssh/
+RUN chmod 0400 id_rsa && echo "IdentityFile /root/.ssh/id_rsa" >> /etc/ssh/ssh_config && ssh-keyscan -H github.com > /etc/ssh/ssh_known_hosts
+
+# Build 1
+ADD ./package.json /build1/package.json
+ADD ./npm-shrinkwrap.json /build1/npm-shrinkwrap.json
+WORKDIR /build1
+RUN echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+RUN npm install
+RUN sha1sum /build1/npm-shrikwrap.json > /build1/npm-shrikwrap.json.sha1
+
+# Build 2
+ADD ./package.json /build2/package.json
+WORKDIR /build2
+RUN cp /build1/node_modules /build2/
+RUN npm shrinkwrap
+RUN sha1sum /build2/npm-shrikwrap.json > /build2/npm-shrikwrap.json.sha1
+
+# Print sums
+# Hypothesis: If npm shrinkwrap is not deterministic as the thing says, these would be diff
+COPY ./entrypoint.sh /entrypoint.sh
+RUN sh entrypoint.sh
+
+CMD entrypoint.sh
+

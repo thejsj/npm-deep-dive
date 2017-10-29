@@ -1,0 +1,24 @@
+FROM node:boron
+# Node Version v6.11., npm 2.15.11
+
+# Build 1 (Generate shrinkwrap)
+COPY ./package.json /build1/package.json
+WORKDIR /build1
+RUN npm install
+RUN npm shrinkwrap
+RUN sha1sum /build1/npm-shrinkwrap.json > /build1/npm-shrinkwrap.json.sha1
+
+# Build 2 (Test shrinkwrap)
+COPY ./package.json /build2/package.json
+WORKDIR /build2
+RUN cp /build1/npm-shrinkwrap.json /build2/
+RUN npm install
+RUN sha1sum /build2/npm-shrinkwrap.json > /build2/npm-shrinkwrap.json.sha1
+
+# Print sums
+# Hypothesis: If npm shrinkwrap is not deterministic as the thing says, these would be diff
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+RUN /entrypoint.sh
+
+CMD /entrypoint.sh
