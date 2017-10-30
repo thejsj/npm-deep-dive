@@ -4,6 +4,8 @@ FROM node:boron
 ARG NPM_VERSION_1=2.15.11
 ARG NPM_VERSION_2=4.2.0
 
+RUN apt-get update && apt-get install vim -y
+
 ## Install NPM
 WORKDIR /npm
 COPY ./package.json ./package.json
@@ -43,9 +45,6 @@ RUN /npm/node_modules/.bin/npm shrinkwrap
 # Hypothesis: If npm shrinkwrap is not deterministic as the thing says, these would be diff
 WORKDIR /
 RUN npm install bluebird
-RUN apt-get update
-RUN apt-get install vim -y
-COPY ./get-data.js /get-data
-RUN chmod +x /get-data
+COPY ./get-data.js /get-data.js
 
-CMD node /get-data
+CMD node /get-data.js
