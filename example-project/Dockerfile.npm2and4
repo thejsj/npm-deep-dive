@@ -1,0 +1,38 @@
+FROM node:boron
+# Node Version v6.11., npm 2.15.11
+
+## Install NPM
+WORKDIR /npm
+COPY ./package.json ./package.json
+RUN npm install npm@2.15.11
+
+# Build 1 (Generate shrinkwrap)
+WORKDIR /build1
+COPY ./package.json ./package.json
+RUN /npm/node_modules/.bin/npm -v > ./npm-version
+RUN /npm/node_modules/.bin/npm install
+RUN /npm/node_modules/.bin/npm shrinkwrap
+
+## Install NPM
+WORKDIR /npm
+# Remove node_modules. They cause new npm install to fail
+RUN rm -rf ./node_modules
+COPY ./package.json ./package.json
+RUN npm install npm@4.2.0
+
+# Build 2 (Test shrinkwrap)
+WORKDIR /build2
+RUN cp /build1/npm-shrinkwrap.json ./
+COPY ./package.json ./package.json
+RUN /npm/node_modules/.bin/npm -v > ./npm-version
+RUN /npm/node_modules/.bin/npm install
+RUN /npm/node_modules/.bin/npm shrinkwrap
+
+# Print sums
+# Hypothesis: If npm shrinkwrap is not deterministic as the thing says, these would be diff
+WORKDIR /
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+RUN /entrypoint.sh
+
+CMD /entrypoint.sh
